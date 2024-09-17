@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "sample-application"
+version = "0.1.0"
+description = ""
+authors = ["Cyril <cpquitevis@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+aws-cdk-lib = "*"
+constructs = ">=10.0.0,<11.0.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "==6.2.5"
+flake8 = "^7.1.1"
+sample_lambda = {path = "src/sample_lambda", develop=true}
+cdk-nag = "*"
+aws-pdk = "^0.23.48"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

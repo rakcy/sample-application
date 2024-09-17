@@ -1,28 +1,54 @@
 #!/usr/bin/env python3
 import os
 
-import aws_cdk as cdk
+from aws_cdk import App, Tags  # , Aspects
 
-from sample_application.sample_application_stack import SampleApplicationStack
+from application_stacks.sample_application_stack import SampleApplicationStack
+from application_stacks.dash_application_stack import DashApplicationStack
+# from cdk_nag import PCIDSS321Checks
+from aws_pdk.cdk_graph import CdkGraph
+from aws_pdk.cdk_graph_plugin_diagram import (
+    CdkGraphDiagramPlugin,
+)
 
 
-app = cdk.App()
-SampleApplicationStack(app, "SampleApplicationStack",
-    # If you don't specify 'env', this stack will be environment-agnostic.
-    # Account/Region-dependent features and context lookups will not work,
-    # but a single synthesized template can be deployed anywhere.
+app = App()
 
-    # Uncomment the next line to specialize this stack for the AWS Account
-    # and Region that are implied by the current CLI configuration.
+# Aspects.of(app).add(PCIDSS321Checks(verbose=True))
 
-    #env=cdk.Environment(account=os.getenv('CDK_DEFAULT_ACCOUNT'), region=os.getenv('CDK_DEFAULT_REGION')),
+app_path = app.node.try_get_context("app_path")
+if not app_path:
+    app_path = os.path.dirname(os.path.realpath(__file__))
+    app.node.set_context("app_path", app_path)
 
-    # Uncomment the next line if you know exactly what Account and Region you
-    # want to deploy the stack to. */
+deployment_environment: str = app.node.try_get_context("deployment_environment")
+if deployment_environment:
+    assert deployment_environment in ("production", "qa")
+    deployment_environment = deployment_environment.capitalize()
+else:
+    deployment_environment = ""
 
-    #env=cdk.Environment(account='123456789012', region='us-east-1'),
+Tags.of(app).add(
+    "deployment_environment",
+    deployment_environment.lower(),
+)
 
-    # For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html
+SampleApplicationStack(
+    app,
+    f"{deployment_environment}SampleApplicationStack",
+)
+
+if deployment_environment:
+    DashApplicationStack(
+        app,
+        f"{deployment_environment.lower()}-dash-application-stack",
     )
 
+cdk_graph = CdkGraph(
+    app,
+    plugins=[CdkGraphDiagramPlugin()],
+)
+
 app.synth()
+
+cdk_graph.report()
